@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Financiera de Clientes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; }
+  header { background: #1a73e8; color: white; padding: 16px 24px; }
+  header h1 { font-size: 20px; }
+  .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab { padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; background: #e0e7ff; color: #1a73e8; }
+  .tab.active { background: #1a73e8; color: white; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 16px; margin-bottom: 16px; color: #1a73e8; }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .form-group { flex: 1; min-width: 180px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+  input:focus, select:focus { outline: none; border-color: #1a73e8; }
+  .btn { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+  .btn-primary { background: #1a73e8; color: white; }
+  .btn-danger { background: #e53935; color: white; }
+  .btn-warning { background: #f59e0b; color: white; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-activo { background: #d1fae5; color: #065f46; }
+  .badge-inactivo { background: #fee2e2; color: #991b1b; }
+  .badge-visa { background: #dbeafe; color: #1e40af; }
+  .badge-mastercard { background: #fef3c7; color: #92400e; }
+  .badge-amex { background: #ede9fe; color: #5b21b6; }
+  .error { color: #e53935; font-size: 13px; margin-top: 6px; }
+  .success { color: #16a34a; font-size: 13px; margin-top: 6px; }
+  .modal-overlay { display:none; position:fixed; top:0;left:0;width:100%;height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:white; border-radius:10px; padding:24px; width:360px; }
+  .modal h3 { margin-bottom:16px; }
+</style>
+</head>
+<body>
+<header><h1>💳 Gestión Financiera de Clientes</h1></header>
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('clientes')">👤 Clientes</button>
+    <button class="tab" onclick="showTab('tarjetas')">💳 Tarjetas de Crédito</button>
+  </div>
+
+  <!-- CLIENTES -->
+  <div id="tab-clientes" class="section active">
+    <div class="card">
+      <h2>Registrar nuevo cliente</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Número de identificación</label>
+          <input type="text" id="c-id" placeholder="Ej: 1234567890">
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="c-correo" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label>Nombre completo</label>
+          <input type="text" id="c-nombre" placeholder="Juan Pérez">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="crearCliente()">+ Nuevo registro</button>
+      <p id="msg-cliente" class="error"></p>
+    </div>
+    <div class="card">
+      <h2>Lista de clientes</h2>
+      <table>
+        <thead><tr><th>Identificación</th><th>Nombre</th><th>Correo</th></tr></thead>
+        <tbody id="tabla-clientes"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TARJETAS -->
+  <div id="tab-tarjetas" class="section">
+    <div class="card">
+      <h2>Registrar nueva tarjeta</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cliente</label>
+          <select id="t-cliente"></select>
+        </div>
+        <div class="form-group">
+          <label>Número de tarjeta</label>
+          <input type="text" id="t-numero" placeholder="16 dígitos VISA/MC, 15 AMEX" maxlength="16">
+        </div>
+        <div class="form-group">
+          <label>Fecha vencimiento (MM/YYYY)</label>
+          <input type="text" id="t-fecha" placeholder="08/2027" maxlength="7">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cupo total</label>
+          <input type="number" id="t-cupo-total" placeholder="5000000">
+        </div>
+        <div class="form-group">
+          <label>Cupo disponible</label>
+          <input type="number" id="t-cupo-disponible" placeholder="3000000">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="crearTarjeta()">+ Nuevo registro</button>
+      <p id="msg-tarjeta" class="error"></p>
+    </div>
+    <div class="card">
+      <h2>Lista de tarjetas</h2>
+      <table>
+        <thead><tr><th>Cliente</th><th>Número</th><th>Franquicia</th><th>Vencimiento</th><th>Cupo Total</th><th>Cupo Disponible</th><th>Cupo Utilizado</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="tabla-tarjetas"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal">
+    <h3>Editar cupo total</h3>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Nuevo cupo total</label>
+      <input type="number" id="edit-cupo" placeholder="Nuevo cupo total">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" style="background:#eee" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let editId = null;
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'tarjetas') cargarClientesSelect();
+}
+
+async function cargarClientes() {
+  const res = await fetch(API + '/clientes');
+  const clientes = await res.json();
+  const tbody = document.getElementById('tabla-clientes');
+  tbody.innerHTML = clientes.map(c => `
+    <tr>
+      <td>${c.numero_identificacion}</td>
+      <td>${c.nombre_completo}</td>
+      <td>${c.correo}</td>
+    </tr>`).join('');
+}
+
+async function cargarClientesSelect() {
+  const res = await fetch(API + '/clientes');
+  const clientes = await res.json();
+  const sel = document.getElementById('t-cliente');
+  sel.innerHTML = '<option value="">Seleccionar cliente</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.nombre_completo} - ${c.numero_identificacion}</option>`).join('');
+}
+
+async function crearCliente() {
+  const msg = document.getElementById('msg-cliente');
+  const data = {
+    numero_identificacion: document.getElementById('c-id').value.trim(),
+    correo: document.getElementById('c-correo').value.trim(),
+    nombre_completo: document.getElementById('c-nombre').value.trim()
+  };
+  if (!data.numero_identificacion || !data.correo || !data.nombre_completo) {
+    msg.textContent = 'Todos los campos son obligatorios'; return;
+  }
+  const res = await fetch(API + '/clientes', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const result = await res.json();
+  if (!res.ok) { msg.textContent = result.error; msg.className = 'error'; return; }
+  msg.textContent = '✓ Cliente registrado exitosamente'; msg.className = 'success';
+  document.getElementById('c-id').value = '';
+  document.getElementById('c-correo').value = '';
+  document.getElementById('c-nombre').value = '';
+  cargarClientes();
+}
+
+async function cargarTarjetas() {
+  const res = await fetch(API + '/tarjetas');
+  const tarjetas = await res.json();
+  const tbody = document.getElementById('tabla-tarjetas');
+  tbody.innerHTML = tarjetas.map(t => `
+    <tr>
+      <td>${t.cliente_nombre}</td>
+      <td>${t.numero_tarjeta}</td>
+      <td><span class="badge badge-${t.franquicia.toLowerCase()}">${t.franquicia}</span></td>
+      <td>${t.fecha_vencimiento}</td>
+      <td>$${t.cupo_total.toLocaleString()}</td>
+      <td>$${t.cupo_disponible.toLocaleString()}</td>
+      <td>$${t.cupo_utilizado.toLocaleString()}</td>
+      <td><span class="badge badge-${t.estado.toLowerCase()}">${t.estado}</span></td>
+      <td>
+        ${t.estado === 'ACTIVO' ? `
+        <button class="btn btn-warning btn-sm" onclick="abrirEditar(${t.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarTarjeta(${t.id})">Eliminar</button>` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+async function crearTarjeta() {
+  const msg = document.getElementById('msg-tarjeta');
+  const data = {
+    cliente_id: document.getElementById('t-cliente').value,
+    numero_tarjeta: document.getElementById('t-numero').value.trim(),
+    fecha_vencimiento: document.getElementById('t-fecha').value.trim(),
+    cupo_total: document.getElementById('t-cupo-total').value,
+    cupo_disponible: document.getElementById('t-cupo-disponible').value
+  };
+  if (!data.cliente_id || !data.numero_tarjeta || !data.fecha_vencimiento || !data.cupo_total || !data.cupo_disponible) {
+    msg.textContent = 'Todos los campos son obligatorios'; return;
+  }
+  const res = await fetch(API + '/tarjetas', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const result = await res.json();
+  if (!res.ok) { msg.textContent = result.error; msg.className = 'error'; return; }
+  msg.textContent = `✓ Tarjeta registrada. Franquicia: ${result.franquicia}`; msg.className = 'success';
+  document.getElementById('t-numero').value = '';
+  document.getElementById('t-fecha').value = '';
+  document.getElementById('t-cupo-total').value = '';
+  document.getElementById('t-cupo-disponible').value = '';
+  cargarTarjetas();
+}
+
+function abrirEditar(id) {
+  editId = id;
+  document.getElementById('modal-editar').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modal-editar').classList.remove('open');
+  editId = null;
+}
+
+async function guardarEdicion() {
+  const cupo = document.getElementById('edit-cupo').value;
+  if (!cupo) return;
+  await fetch(API + '/tarjetas/' + editId, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({cupo_total: cupo}) });
+  cerrarModal();
+  cargarTarjetas();
+}
+
+async function eliminarTarjeta(id) {
+  if (!confirm('¿Deseas desactivar esta tarjeta?')) return;
+  await fetch(API + '/tarjetas/' + id, { method: 'DELETE' });
+  cargarTarjetas();
+}
+
+cargarClientes();
+cargarTarjetas();
+</script>
+</body>
+</html>
