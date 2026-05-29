@@ -16,6 +16,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install flask flask-sqlalchemy flask-cors
+        run: pip install flask flask-sqlalchemy flask-cors pytest
       - name: Run tests
         run: python -m pytest test_franquicia.py -v
